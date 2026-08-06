@@ -2,15 +2,12 @@ import os
 from google import genai
 from google.genai import types
 
+# GitHub will replace this line instantly
+API_KEY = "REPLACE_WITH_GITHUB_SECRET"
+
 class ChatbotApi:
     def __init__(self):
-        # This reads THE_KEY directly from the GitHub build environment
-        api_key = os.getenv("THE_KEY")
-        
-        if not api_key:
-            raise ValueError("Error: THE_KEY is missing from the environment!")
-            
-        self.client = genai.Client(api_key=api_key)
+        self.client = genai.Client(api_key=API_KEY)
         system_instruction = (
             "Your name is Minima. You are a precise coding assistant. "
             "CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside "
