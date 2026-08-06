@@ -1,46 +1,40 @@
-import pyodide_http
-import requests
-from pyscript import document
+import os
+import sys
+from google import genai
+from google.genai import types
 
-pyodide_http.patch_all()
+# GitHub's compilation routine automatically fills this value
+API_KEY = "REPLACE_WITH_GITHUB_SECRET"
 
-def send_message(event):
-    input_element = document.querySelector("#msg")
-    chat_box = document.querySelector("#box")
-    user_text = input_element.value
-    
-    if not user_text.strip():
-        return
-
-    # Render User Query on UI
-    user_html = f'<div class="msg-bubble user-msg">{user_text}</div>'
-    chat_box.innerHTML += user_html
-    input_element.value = ""
-    chat_box.scrollTop = chat_box.scrollHeight
-
-    # Display Loading Block
-    loading_id = "minima-loading-indicator"
-    loading_html = f'<div id="{loading_id}" class="msg-bubble bot-msg">Thinking...</div>'
-    chat_box.innerHTML += loading_html
-    chat_box.scrollTop = chat_box.scrollHeight
-
-    try:
-        # Posts to your server which holds your GitHub Secret safely hidden away
-        response = requests.post(
-            "http://localhost:8000/chat", 
-            json={"message": user_text},
-            timeout=30
+class ChatbotApi:
+    def __init__(self):
+        if API_KEY == "REPLACE_WITH_GITHUB_SECRET" or not API_KEY:
+            raise ValueError("Compilation Error: The GitHub Secret payload injection was skipped!")
+            
+        # Assign the compiled credential key string directly to the client profile
+        self.client = genai.Client(api_key=API_KEY)
+        
+        system_instruction = (
+            "Your name is Minima. You are a precise coding assistant. "
+            "CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside "
+            "proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
         )
-        data = response.json()
-        bot_response = data.get("response", "Error fetching data from server pipeline.")
-    except Exception as e:
-        bot_response = f"Engine Connection Offline: {str(e)}"
+        self.config = types.GenerateContentConfig(system_instruction=system_instruction)
+        self.chat_session = self.client.chats.create(model="gemini-3.6-flash", config=self.config)
 
-    # Destroy Loading Block and Render Bot Output
-    loading_element = document.querySelector(f"#{loading_id}")
-    if loading_element:
-        loading_element.remove()
+    def chat(self, message):
+        try:
+            response = self.chat_session.send_message(message)
+            return {"response": response.text}
+        except Exception as e:
+            return {"response": f"Google Studio Core Processing Error: {str(e)}"}
 
-    bot_html = f'<div class="msg-bubble bot-msg">{bot_response}</div>'
-    chat_box.innerHTML += bot_html
-    chat_box.scrollTop = chat_box.scrollHeight
+if __name__ == "__main__":
+    bot = ChatbotApi()
+    print("Minima CLI Initialization Finalized. Enter 'exit' to terminate.\n")
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() == 'exit':
+            break
+        result = bot.chat(user_input)
+        print(f"\nMinima: {result['response']}\n")
