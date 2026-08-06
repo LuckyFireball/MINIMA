@@ -1,4 +1,4 @@
-name: Publish Application
+name: Deploy Live Website
 
 on:
   push:
@@ -7,28 +7,30 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  publish:
+  deploy-site:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Sync Repository Code
         uses: actions/checkout@v4
 
-      - name: Fast Key Injection
+      - name: Inject Secret Token
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          # This replaces the text placeholder instantly using an alternate separator to avoid character errors
+          # Overwrites the text template string directly inside main.py with your private token
           sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
 
-      - name: Create Version Tag
-        id: tag
-        run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+      - name: Setup GitHub Pages Website Environment
+        uses: actions/configure-pages@v5
 
-      - name: Publish Script Instantly
-        uses: softprops/action-gh-release@v2
+      - name: Upload Page Files
+        uses: actions/upload-pages-artifact@v3
         with:
-          tag_name: ${{ steps.tag.outputs.version }}
-          name: Minima Release ${{ steps.tag.outputs.version }}
-          files: main.py
+          path: '.'
+
+      - name: Deploy Live Link
+        uses: actions/deploy-pages@v4
