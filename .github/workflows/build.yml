@@ -1,25 +1,25 @@
-name: Build Application
+name: Deploy Minima Core Engine
 
 on: [push]
 
 jobs:
-  build:
+  run-engine:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Sync Repository Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Initialize Runtime Environment
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Dependencies
+      - name: Deploy Requirements
         run: |
-          pip install pywebview google-genai pyinstaller
+          pip install google-genai fastapi uvicorn pydantic
 
-      - name: Run Build with Secret
+      - name: Boot Secure API Service
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          pyinstaller --onefile --add-data "index.html:." main.py
+          python server.py
