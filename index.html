@@ -50,7 +50,8 @@
       <div class="input-container">
         <div class="input-wrapper">
           <input type="text" id="msg" placeholder="Message MINIMA...">
-          <button id="sendBtn" py-click="send_message">
+          <!-- Removed old py-click to let script.js listen correctly -->
+          <button id="sendBtn">
             <svg viewBox="0 0 24 24" width="18" height="18">
               <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
             </svg>
@@ -59,8 +60,9 @@
       </div>
     </div>
   </div>
-  
-   <script src="script.js"></script>
+
+  <!-- Links your script.js logic right into your document -->
+  <script src="script.js"></script>
   <script type="py" src="main.py"></script>
 </body>
 </html>
