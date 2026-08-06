@@ -20,17 +20,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Inject Secret From GitHub
-        env:
-          THE_KEY: ${{ secrets.THE_KEY }}
-        run: |
-          sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
-
       - name: Install PyInstaller and Gemini
         run: |
           pip install pyinstaller google-genai
 
-      - name: Compile Executable
+      - name: Compile Executable with Secret
+        env:
+          # This passes your secret directly into the executable while PyInstaller is building it
+          THE_KEY: ${{ secrets.THE_KEY }}
         run: |
           pyinstaller --onefile --name="Minima-Engine" main.py
 
