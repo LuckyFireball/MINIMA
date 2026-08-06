@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   run-server:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Always use ubuntu-latest for maximum runner availability
     steps:
       - name: Sync Repository Code
         uses: actions/checkout@v4
@@ -13,10 +13,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip' # Automatically caches installed packages between builds
 
       - name: Install Runtime Requirements
         run: |
-          pip install google-genai fastapi uvicorn pydantic
+          pip install --prefer-binary google-genai fastapi uvicorn pydantic
 
       - name: Run Server with GitHub Secret
         env:
