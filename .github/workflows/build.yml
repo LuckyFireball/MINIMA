@@ -17,12 +17,19 @@ jobs:
       - name: Sync Repository Code
         uses: actions/checkout@v4
 
-      - name: Inject Secret Token
+      - name: Inject Secret Token Safely
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          # Overwrites the text template string directly inside main.py with your private token
-          sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
+          # Python safely processes your AQ. key string without character crashes
+          python3 -c "
+          import os
+          with open('main.py', 'r') as f:
+              code = f.read()
+          code = code.replace('THE_KEY_WILL_BE_HERE', os.environ['THE_KEY'])
+          with open('main.py', 'w') as f:
+              f.write(code)
+          "
 
       - name: Setup GitHub Pages Website Environment
         uses: actions/configure-pages@v5
