@@ -2,13 +2,13 @@ import pyodide_http
 import requests
 from pyscript import document
 
-# This placeholder will automatically be replaced with your actual GitHub Secret when you push code
+# This placeholder will automatically be filled directly by your GitHub workflow build
 API_KEY = "REPLACE_WITH_GITHUB_SECRET"
 
 pyodide_http.patch_all()
 
-# Set up the Gemini API endpoint directly from the browser
-BASE_URL = f"https://googleapis.com{API_KEY}"
+# Correct, updated API target endpoint for the gemini-3.6-flash model
+BASE_URL = "https://googleapis.com"
 
 def send_message(event):
     input_element = document.querySelector("#msg")
@@ -40,12 +40,17 @@ def send_message(event):
         }
     }
 
+    # Pass key inside custom headers safely to prevent URL leaks
+    headers = {
+        "x-goog-api-key": API_KEY,
+        "Content-Type": "application/json"
+    }
+
     try:
-        # Call Gemini API directly from the browser using your secret key safely injected
-        response = requests.post(BASE_URL, json=payload, timeout=30)
+        response = requests.post(BASE_URL, json=payload, headers=headers, timeout=30)
         data = response.json()
         
-        # Parse response text safely
+        # Correctly step through standard Google JSON payload tree
         bot_response = data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         bot_response = f"Engine Connection Offline: {str(e)}"
