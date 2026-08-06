@@ -2,8 +2,8 @@ import pyodide_http
 import requests
 from pyscript import document
 
-# The GitHub workflow builder will overwrite this text block with your real key value
-API_KEY = "REPLACE_WITH_GITHUB_SECRET"
+# The GitHub workflow will safely insert your AQ. key on this line
+API_KEY = "THE_KEY_WILL_BE_HERE"
 
 pyodide_http.patch_all()
 
@@ -17,13 +17,13 @@ def send_message(event):
     if not user_text.strip():
         return
 
-    # Render your input text onto the screen bubble layout
+    # Render user text onto the screen
     user_html = f'<div class="msg-bubble user-msg">{user_text}</div>'
     chat_box.innerHTML += user_html
     input_element.value = ""
     chat_box.scrollTop = chat_box.scrollHeight
 
-    # Generate temporary thinking text block
+    # Thinking state
     loading_id = "minima-loading"
     loading_html = f'<div id="{loading_id}" class="msg-bubble bot-msg">Thinking...</div>'
     chat_box.innerHTML += loading_html
@@ -38,6 +38,7 @@ def send_message(event):
         }
     }
 
+    # Pass your AQ. key inside the safe custom header layout
     headers = {
         "x-goog-api-key": API_KEY,
         "Content-Type": "application/json"
@@ -46,11 +47,11 @@ def send_message(event):
     try:
         response = requests.post(BASE_URL, json=payload, headers=headers, timeout=30)
         data = response.json()
-        bot_response = data["candidates"][0]["content"]["parts"][0]["text"]
+        bot_response = data["candidates"]["content"]["parts"]["text"]
     except Exception as e:
         bot_response = f"Engine Connection Offline: {str(e)}"
 
-    # Delete thinking indicator and render the true reply string
+    # Clear loading indicator and show the bot reply
     loading_element = document.querySelector(f"#{loading_id}")
     if loading_element:
         loading_element.remove()
