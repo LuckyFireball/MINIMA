@@ -1,34 +1,60 @@
-import os
-from google import genai
-from google.genai import types
+import pyodide_http
+import requests
+from pyscript import document
 
-# GitHub will replace this line instantly
+# The GitHub workflow builder will overwrite this text block with your real key value
 API_KEY = "REPLACE_WITH_GITHUB_SECRET"
 
-class ChatbotApi:
-    def __init__(self):
-        self.client = genai.Client(api_key=API_KEY)
-        system_instruction = (
-            "Your name is Minima. You are a precise coding assistant. "
-            "CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside "
-            "proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
-        )
-        self.config = types.GenerateContentConfig(system_instruction=system_instruction)
-        self.chat_session = self.client.chats.create(model="gemini-3.6-flash", config=self.config)
+pyodide_http.patch_all()
 
-    def chat(self, message):
-        try:
-            response = self.chat_session.send_message(message)
-            return {"response": response.text}
-        except Exception as e:
-            return {"response": f"Error: {str(e)}"}
+BASE_URL = "https://googleapis.com"
 
-if __name__ == "__main__":
-    bot = ChatbotApi()
-    print("Minima Engine Initialized. Type 'exit' to quit.\n")
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == 'exit':
-            break
-        result = bot.chat(user_input)
-        print(f"\nMinima: {result['response']}\n")
+def send_message(event):
+    input_element = document.querySelector("#msg")
+    chat_box = document.querySelector("#box")
+    user_text = input_element.value
+    
+    if not user_text.strip():
+        return
+
+    # Render your input text onto the screen bubble layout
+    user_html = f'<div class="msg-bubble user-msg">{user_text}</div>'
+    chat_box.innerHTML += user_html
+    input_element.value = ""
+    chat_box.scrollTop = chat_box.scrollHeight
+
+    # Generate temporary thinking text block
+    loading_id = "minima-loading"
+    loading_html = f'<div id="{loading_id}" class="msg-bubble bot-msg">Thinking...</div>'
+    chat_box.innerHTML += loading_html
+    chat_box.scrollTop = chat_box.scrollHeight
+
+    payload = {
+        "contents": [{"parts": [{"text": user_text}]}],
+        "systemInstruction": {
+            "parts": [{
+                "text": "Your name is Minima. You are a precise coding assistant. CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
+            }]
+        }
+    }
+
+    headers = {
+        "x-goog-api-key": API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post(BASE_URL, json=payload, headers=headers, timeout=30)
+        data = response.json()
+        bot_response = data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        bot_response = f"Engine Connection Offline: {str(e)}"
+
+    # Delete thinking indicator and render the true reply string
+    loading_element = document.querySelector(f"#{loading_id}")
+    if loading_element:
+        loading_element.remove()
+
+    bot_html = f'<div class="msg-bubble bot-msg">{bot_response}</div>'
+    chat_box.innerHTML += bot_html
+    chat_box.scrollTop = chat_box.scrollHeight
