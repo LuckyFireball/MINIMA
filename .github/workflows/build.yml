@@ -18,15 +18,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Inject Secret Token Safely
+        # We must place the env declaration directly on the step so Python can see it
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          # Python safely processes your AQ. key string without character crashes
           python3 -c "
           import os
           with open('main.py', 'r') as f:
               code = f.read()
-          code = code.replace('THE_KEY_WILL_BE_HERE', os.environ['THE_KEY'])
+          # We read it directly from the local environment variable safely
+          code = code.replace('THE_KEY_WILL_BE_HERE', os.environ.get('THE_KEY', ''))
           with open('main.py', 'w') as f:
               f.write(code)
           "
