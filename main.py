@@ -1,54 +1,46 @@
-import os
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from google import genai
-from google.genai import types
+import pyodide_http
+import requests
+from pyscript import document
 
-app = FastAPI()
+pyodide_http.patch_all()
 
-# Allow your PyScript front-end to communicate with this backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def send_message(event):
+    input_element = document.querySelector("#msg")
+    chat_box = document.querySelector("#box")
+    user_text = input_element.value
+    
+    if not user_text.strip():
+        return
 
-class ChatRequest(BaseModel):
-    message: str
+    # Add User Message to UI
+    user_html = f'<div class="msg-bubble user-msg">{user_text}</div>'
+    chat_box.innerHTML += user_html
+    input_element.value = ""
+    chat_box.scrollTop = chat_box.scrollHeight
 
-class ChatbotApi:
-    def __init__(self):
-        api_key = os.getenv("THE_KEY")
-        if not api_key:
-            raise ValueError("THE_KEY missing from environment")
-        self.client = genai.Client(api_key=api_key)
-        
-        system_instruction = (
-            "Your name is Minima. You are a precise coding assistant. "
-            "CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside "
-            "proper markdown code blocks with the correct language identifier (e.g., ```python ... ```). "
-            "Ensure every code block has a clear beginning and ending so it can be easily copied."
+    # Add Temporary Loading State
+    loading_id = "minima-loading-indicator"
+    loading_html = f'<div id="{loading_id}" class="msg-bubble bot-msg">Thinking...</div>'
+    chat_box.innerHTML += loading_html
+    chat_box.scrollTop = chat_box.scrollHeight
+
+    try:
+        # Route to your secure host executing your GitHub Secret
+        response = requests.post(
+            "http://localhost:8000/chat", 
+            json={"message": user_text},
+            timeout=30
         )
-        self.config = types.GenerateContentConfig(system_instruction=system_instruction)
-        self.chat_session = self.client.chats.create(model="gemini-3.6-flash", config=self.config)
+        data = response.json()
+        bot_response = data.get("response", "Error parsing engine data.")
+    except Exception as e:
+        bot_response = f"Engine Connection Offline: {str(e)}"
 
-    def chat(self, message: str):
-        try:
-            response = self.chat_session.send_message(message)
-            return {"response": response.text}
-        except Exception as e:
-            return {"response": f"Google AI Studio Error: {str(e)}"}
+    # Remove Loading State and Append Final Bot Message
+    loading_element = document.querySelector(f"#{loading_id}")
+    if loading_element:
+        loading_element.remove()
 
-# Initialize bot instance
-bot = ChatbotApi()
-
-@app.post("/chat")
-async def chat_endpoint(request: ChatRequest):
-    return bot.chat(request.message)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    bot_html = f'<div class="msg-bubble bot-msg">{bot_response}</div>'
+    chat_box.innerHTML += bot_html
+    chat_box.scrollTop = chat_box.scrollHeight
