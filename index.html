@@ -39,7 +39,6 @@
             <span>MINIMA Engine Connected</span>
           </div>
         </div>
-        <input type="password" id="apiKey" placeholder="Paste your Gemini API key..." style="margin-left:auto; padding:6px 10px; border-radius:6px;">
       </div>
 
       <div id="box">
@@ -51,7 +50,7 @@
       <div class="input-container">
         <div class="input-wrapper">
           <input type="text" id="msg" placeholder="Message MINIMA...">
-          <button id="sendBtn">
+          <button id="sendBtn" py-click="send_message">
             <svg viewBox="0 0 24 24" width="18" height="18">
               <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
             </svg>
