@@ -7,6 +7,7 @@ from google.genai import types
 
 app = FastAPI()
 
+# Allow your frontend HTML file to communicate safely with this server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,9 +21,11 @@ class ChatRequest(BaseModel):
 
 class ChatbotApi:
     def __init__(self):
+        # Reads the GitHub secret securely from the server environment
         api_key = os.getenv("THE_KEY")
         if not api_key:
-            raise ValueError("THE_KEY configuration missing")
+            raise ValueError("Configuration Error: THE_KEY secret is missing!")
+        
         self.client = genai.Client(api_key=api_key)
         
         system_instruction = (
@@ -40,6 +43,7 @@ class ChatbotApi:
         except Exception as e:
             return {"response": f"API Error: {str(e)}"}
 
+# Initialize engine instance
 bot = ChatbotApi()
 
 @app.post("/chat")
