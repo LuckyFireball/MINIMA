@@ -1,10 +1,10 @@
-name: Deploy Application Engine
+name: Compile Standalone Application
 
 on: [push]
 
 jobs:
-  run-server:
-    runs-on: ubuntu-latest # Always use ubuntu-latest for maximum runner availability
+  build:
+    runs-on: ubuntu-latest
     steps:
       - name: Sync Repository Code
         uses: actions/checkout@v4
@@ -13,14 +13,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip' # Automatically caches installed packages between builds
+          cache: 'pip'
 
-      - name: Install Runtime Requirements
-        run: |
-          pip install --prefer-binary google-genai fastapi uvicorn pydantic
-
-      - name: Run Server with GitHub Secret
+      - name: Inject Secret Token Natively
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          python server.py
+          # Replaces the template string inside your script with your real repository token
+          sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
+
+      - name: Install PyInstaller Binary Engine
+        run: |
+          pip install --prefer-binary pyinstaller google-genai
+
+      - name: Compile to Production Executable
+        run: |
+          pyinstaller --onefile main.py
+
+      - name: Upload Final Build to GitHub Actions Tab
+        uses: actions/upload-artifact@v4
+        with:
+          name: minima-production-build
+          path: dist/
