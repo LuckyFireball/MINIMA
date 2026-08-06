@@ -1,21 +1,25 @@
-name: Deploy Serverless App
+name: Deploy Application Engine
 
 on: [push]
 
 jobs:
-  build:
+  run-server:
     runs-on: ubuntu-latest
     steps:
       - name: Sync Repository Code
         uses: actions/checkout@v4
 
-      - name: Hardcode Secret into Application
+      - name: Initialize Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Runtime Requirements
+        run: |
+          pip install google-genai fastapi uvicorn pydantic
+
+      - name: Run Server with GitHub Secret
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          # Replaces the string placeholder with your repository secret
-          sed -i 's|REPLACE_WITH_GITHUB_SECRET|'"$THE_KEY"'|g' main.py
-
-      - name: Verify Build Setup
-        run: |
-          echo "Build finalized successfully. The key is wrapped natively within the runtime payload."
+          python server.py
