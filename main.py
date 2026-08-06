@@ -2,7 +2,13 @@ import pyodide_http
 import requests
 from pyscript import document
 
+# This placeholder will automatically be replaced with your actual GitHub Secret when you push code
+API_KEY = "REPLACE_WITH_GITHUB_SECRET"
+
 pyodide_http.patch_all()
+
+# Set up the Gemini API endpoint directly from the browser
+BASE_URL = f"https://googleapis.com{API_KEY}"
 
 def send_message(event):
     input_element = document.querySelector("#msg")
@@ -24,15 +30,23 @@ def send_message(event):
     chat_box.innerHTML += loading_html
     chat_box.scrollTop = chat_box.scrollHeight
 
+    # Structure payload according to Google Gemini API requirements
+    payload = {
+        "contents": [{"parts": [{"text": user_text}]}],
+        "systemInstruction": {
+            "parts": [{
+                "text": "Your name is Minima. You are a precise coding assistant. CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
+            }]
+        }
+    }
+
     try:
-        # Route to your secure host executing your GitHub Secret
-        response = requests.post(
-            "http://localhost:8000/chat", 
-            json={"message": user_text},
-            timeout=30
-        )
+        # Call Gemini API directly from the browser using your secret key safely injected
+        response = requests.post(BASE_URL, json=payload, timeout=30)
         data = response.json()
-        bot_response = data.get("response", "Error parsing engine data.")
+        
+        # Parse response text safely
+        bot_response = data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         bot_response = f"Engine Connection Offline: {str(e)}"
 
