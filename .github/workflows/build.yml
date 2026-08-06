@@ -15,29 +15,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install PyInstaller and Gemini
-        run: |
-          pip install pyinstaller google-genai
-
-      - name: Compile Executable with Secret
+      - name: Fast Key Injection
         env:
-          # This passes your secret directly into the executable while PyInstaller is building it
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          pyinstaller --onefile --name="Minima-Engine" main.py
+          # This replaces the text placeholder instantly using an alternate separator to avoid character errors
+          sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
 
       - name: Create Version Tag
         id: tag
         run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      - name: Publish to GitHub Releases
+      - name: Publish Script Instantly
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.version }}
           name: Minima Release ${{ steps.tag.outputs.version }}
-          files: dist/Minima-Engine
+          files: main.py
