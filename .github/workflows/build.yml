@@ -1,37 +1,46 @@
-name: Compile Standalone Application
+name: Publish Application
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync Repository Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Initialize Python Environment
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
-      - name: Inject Secret Token Natively
+      - name: Inject Secret From GitHub
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          # Replaces the template string inside your script with your real repository token
           sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
 
-      - name: Install PyInstaller Binary Engine
+      - name: Install PyInstaller and Gemini
         run: |
-          pip install --prefer-binary pyinstaller google-genai
+          pip install pyinstaller google-genai
 
-      - name: Compile to Production Executable
+      - name: Compile Executable
         run: |
-          pyinstaller --onefile main.py
+          pyinstaller --onefile --name="Minima-Engine" main.py
 
-      - name: Upload Final Build to GitHub Actions Tab
-        uses: actions/upload-artifact@v4
+      - name: Create Version Tag
+        id: tag
+        run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: minima-production-build
-          path: dist/
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: Minima Release ${{ steps.tag.outputs.version }}
+          files: dist/Minima-Engine
