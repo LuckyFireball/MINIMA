@@ -1,25 +1,21 @@
-name: Deploy Minima Core Engine
+name: Inject Secret and Deploy
 
 on: [push]
 
 jobs:
-  run-engine:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Sync Repository Code
         uses: actions/checkout@v4
 
-      - name: Initialize Runtime Environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Deploy Requirements
-        run: |
-          pip install google-genai fastapi uvicorn pydantic
-
-      - name: Boot Secure API Service
+      - name: Inject GitHub Secret Into PyScript File
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          python server.py
+          # Uses linux sed command to swap the placeholder text with your real secret key safely
+          sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
+
+      - name: Package Code
+        run: |
+          echo "Your secret has been safely bound to your code session!"
