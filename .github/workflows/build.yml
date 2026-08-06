@@ -1,4 +1,4 @@
-name: Inject Secret and Deploy
+name: Deploy Serverless App
 
 on: [push]
 
@@ -9,13 +9,13 @@ jobs:
       - name: Sync Repository Code
         uses: actions/checkout@v4
 
-      - name: Inject GitHub Secret Into PyScript File
+      - name: Hardcode Secret into Application
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          # Uses linux sed command to swap the placeholder text with your real secret key safely
-          sed -i "s|REPLACE_WITH_GITHUB_SECRET|$THE_KEY|g" main.py
+          # Replaces the string placeholder with your repository secret
+          sed -i 's|REPLACE_WITH_GITHUB_SECRET|'"$THE_KEY"'|g' main.py
 
-      - name: Package Code
+      - name: Verify Build Setup
         run: |
-          echo "Your secret has been safely bound to your code session!"
+          echo "Build finalized successfully. The key is wrapped natively within the runtime payload."
