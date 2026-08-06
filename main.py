@@ -1,80 +1,54 @@
-import json
-from pyscript import document, window
-from pyodide.http import pyfetch
+import os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from google import genai
+from google.genai import types
 
-history = []
+app = FastAPI()
 
-SYSTEM_INSTRUCTION = (
-    "Your name is minima, When you generate code, you must wrap the code inside "
-    "markdown code blocks (e.g., ```python ... ```)."
+# Allow your PyScript front-end to communicate with this backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-def add_message(text, is_bot):
-    box = document.getElementById("box")
-    bubble = document.createElement("div")
-    bubble.className = "msg-bubble bot-msg" if is_bot else "msg-bubble user-msg"
-    bubble.innerText = text
-    box.appendChild(bubble)
-    box.scrollTop = box.scrollHeight
+class ChatRequest(BaseModel):
+    message: str
 
-async def send_message(event=None):
-    msg_input = document.getElementById("msg")
-    key_input = document.getElementById("apiKey")
-    message = msg_input.value.strip()
-    api_key = key_input.value.strip()
-
-    if not message:
-        return
-    if not api_key:
-        add_message("Please paste your Gemini API key above first.", True)
-        return
-
-    add_message(message, False)
-    msg_input.value = ""
-
-    contents = []
-    for m in history:
-        contents.append({"role": m["role"], "parts": [{"text": m["content"]}]})
-    contents.append({"role": "user", "parts": [{"text": message}]})
-
-    payload = {
-        "contents": contents,
-        "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]}
-    }
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-
-    try:
-        response = await pyfetch(
-            url,
-            method="POST",
-            headers={"Content-Type": "application/json"},
-            body=json.dumps(payload)
+class ChatbotApi:
+    def __init__(self):
+        api_key = os.getenv("THE_KEY")
+        if not api_key:
+            raise ValueError("THE_KEY missing from environment")
+        self.client = genai.Client(api_key=api_key)
+        
+        system_instruction = (
+            "Your name is Minima. You are a precise coding assistant. "
+            "CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside "
+            "proper markdown code blocks with the correct language identifier (e.g., ```python ... ```). "
+            "Ensure every code block has a clear beginning and ending so it can be easily copied."
         )
-        data = await response.json()
+        self.config = types.GenerateContentConfig(system_instruction=system_instruction)
+        self.chat_session = self.client.chats.create(model="gemini-3.6-flash", config=self.config)
 
-        assistant_message = data["candidates"][0]["content"]["parts"][0]["text"]
+    def chat(self, message: str):
+        try:
+            response = self.chat_session.send_message(message)
+            return {"response": response.text}
+        except Exception as e:
+            return {"response": f"Google AI Studio Error: {str(e)}"}
 
-        history.append({"role": "user", "content": message})
-        history.append({"role": "model", "content": assistant_message})
+# Initialize bot instance
+bot = ChatbotApi()
 
-        add_message(assistant_message, True)
+@app.post("/chat")
+async def chat_endpoint(request: ChatRequest):
+    return bot.chat(request.message)
 
-    except Exception as e:
-        add_message(f"Gemini API Error: {str(e)}", True)
-
-send_btn = document.getElementById("sendBtn")
-send_btn.addEventListener("click", send_message)
-
-msg_input = document.getElementById("msg")
-def on_enter(event):
-    if event.key == "Enter":
-        window.setTimeout(create_proxy_wrapper, 0)
-
-from pyodide.ffi import create_proxy
-
-async def enter_handler(event):
-    if event.key == "Enter":
-        await send_message()
-
-msg_input.addEventListener("keypress", create_proxy(enter_handler))
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
