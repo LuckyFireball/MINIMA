@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pyinstaller
+      - run: pip install pyinstaller google-genai
       - run: pyinstaller --onefile --name="Minima-Engine-Windows" main.py
       - uses: actions/upload-artifact@v4
         with:
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pyinstaller
+      - run: pip install pyinstaller google-genai
       - name: Compile and Zip Mac App
         run: |
           pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
@@ -42,10 +42,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Fixed line: Changed - os back to - uses cleanly
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pyinstaller
+      - run: pip install pyinstaller google-genai
       - run: pyinstaller --onefile --name="Minima-Engine-Linux" main.py
       - uses: actions/upload-artifact@v4
         with:
@@ -64,6 +65,8 @@ jobs:
       - name: Publish to Releases
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: "v1.0.${{ github.run_number }}"
+          name: "Minima Release v1.0.${{ github.run_number }}"
           files: |
             dist/Minima-Engine-Windows.exe
             dist/Minima-Mac-Installer.zip
