@@ -135,7 +135,7 @@
       });
     }
 
-     Zion
+    // Typo removed completely from this section
     function appendMessage(text, isBot) {
       const bubble = document.createElement('div');
       bubble.className = isBot ? 'msg-bubble bot-msg' : 'msg-bubble user-msg';
@@ -201,10 +201,17 @@
         });
         
         const data = await response.json();
-        const botResponse = data.candidates[0].content.parts[0].text;
         
-        removeLoadingIndicator(animationId);
-        appendMessage(botResponse, true);
+        // Fixed: Added safer object data extraction paths
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+          const botResponse = data.candidates[0].content.parts[0].text;
+          removeLoadingIndicator(animationId);
+          appendMessage(botResponse, True);
+        } else {
+          removeLoadingIndicator(animationId);
+          appendMessage("Engine Error: Received unreadable data from Gemini.", true);
+          console.log(data);
+        }
       } catch (error) {
         removeLoadingIndicator(animationId);
         appendMessage("Engine Connection Offline: Could not reach Gemini.", true);
@@ -212,7 +219,6 @@
       }
     }
 
-    // Assign standard JavaScript click and keypress listeners natively
     sendBtn.addEventListener('click', processChatCycle);
     msgInput.addEventListener('keypress', function (e) {
       if (e.key === 'Enter') {
