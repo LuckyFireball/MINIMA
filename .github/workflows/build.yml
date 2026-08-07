@@ -18,19 +18,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Inject Secret Token Safely
-        # We must place the env declaration directly on the step so Python can see it
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
+        # Changed to a safe echo statement to avoid breaking YAML quote rules
         run: |
-          python3 -c "
-          import os
-          with open('main.py', 'r') as f:
-              code = f.read()
-          # We read it directly from the local environment variable safely
-          code = code.replace('THE_KEY_WILL_BE_HERE', os.environ.get('THE_KEY', ''))
-          with open('main.py', 'w') as f:
-              f.write(code)
-          "
+          python3 -c "import os; f=open('main.py','r'); c=f.read(); f.close(); c=c.replace('THE_KEY_WILL_BE_HERE', os.environ['THE_KEY']); f=open('main.py','w'); f.write(c); f.close()"
 
       - name: Setup GitHub Pages Website Environment
         uses: actions/configure-pages@v5
