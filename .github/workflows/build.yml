@@ -21,28 +21,26 @@ jobs:
           path: dist/Minima-Engine-Windows.exe
 
   build-mac:
-    runs-on: macos-latest
+    # CRITICAL: macos-13 is an Intel-based runner. This fixes "bad CPU type" forever!
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: pip install pyinstaller google-genai
-      - name: Compile and Zip Mac App
+      - name: Compile Mac App
         run: |
-          pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
-          cd dist
-          zip -r Minima-Mac-Installer.zip Minima-Engine-Mac
+          pyinstaller --onefile --name="Minima-Engine-Mac" main.py
       - uses: actions/upload-artifact@v4
         with:
           name: mac-bin
-          path: dist/Minima-Mac-Installer.zip
+          path: dist/Minima-Engine-Mac
 
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Fixed line: Changed - os back to - uses cleanly
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -69,5 +67,5 @@ jobs:
           name: "Minima Release v1.0.${{ github.run_number }}"
           files: |
             dist/Minima-Engine-Windows.exe
-            dist/Minima-Mac-Installer.zip
+            dist/Minima-Engine-Mac
             dist/Minima-Engine-Linux
