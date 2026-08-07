@@ -6,8 +6,8 @@
   <meta name="google-site-verification" content="9HvV_MPXWlPB06KMwelS_sWi2caNCp8y-pN2Q0XkAzA" />
   <title>MINIMA by NOVA AI</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://pyscript.net/releases/2024.11.1/core.css">
-  <script type="module" src="https://pyscript.net/releases/2024.11.1/core.js"></script>
+  <link rel="stylesheet" href="https://pyscript.net">
+  <script type="module" src="https://pyscript.net"></script>
 </head>
 
 <body>
@@ -60,6 +60,178 @@
     </div>
   </div>
 
-  <script type="py" src="./main.py"></script>
+  <!-- JavaScript logic embedded inside -->
+  <script>
+    const box = document.getElementById('box');
+    const msgInput = document.getElementById('msg');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function formatMarkdownText(text) {
+      const regex = /```(\w*)\n([\s\S]*?)\n```/g;
+      let matches = [];
+      let match;
+
+      while ((match = regex.exec(text)) !== null) {
+        matches.push({
+          full: match[0],
+          lang: match[1],
+          code: match[2],
+          index: match.index,
+        });
+      }
+
+      if (matches.length === 0) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML.replace(/\n/g, '<br>').replace(/  /g, '&nbsp;&nbsp;');
+      }
+
+      let lastIndex = 0;
+      let resultHTML = '';
+
+      matches.forEach((m) => {
+        let plainText = text.substring(lastIndex, m.index);
+        if (plainText) {
+          const div = document.createElement('div');
+          div.textContent = plainText;
+          resultHTML += div.innerHTML.replace(/\n/g, '<br>').replace(/  /g, '&nbsp;&nbsp;');
+        }
+
+        const displayLang = m.lang || 'code';
+        const divEscape = document.createElement('div');
+        divEscape.textContent = m.code;
+        const escapedCode = divEscape.innerHTML;
+
+        resultHTML += `
+          <div class="code-container">
+              <div class="code-header">
+                  <span>${displayLang}</span>
+                  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <pre><code>${escapedCode}</code></pre>
+          </div>
+        `;
+        lastIndex = m.index + m.full.length;
+      });
+
+      let remainingText = text.substring(lastIndex);
+      if (remainingText) {
+        const div = document.createElement('div');
+        div.textContent = remainingText;
+        resultHTML += div.innerHTML.replace(/\n/g, '<br>').replace(/  /g, '&nbsp;&nbsp;');
+      }
+
+      return resultHTML;
+    }
+
+    function copyCode(button) {
+      const container = button.closest('.code-container');
+      const codeText = container.querySelector('pre code').innerText;
+      navigator.clipboard.writeText(codeText).then(() => {
+        button.innerText = 'Copied!';
+        setTimeout(() => { button.innerText = 'Copy'; }, 2000);
+      });
+    }
+
+    function appendMessage(text, isBot) {
+      const bubble = document.createElement('div');
+      bubble.className = isBot ? 'msg-bubble bot-msg' : 'msg-bubble user-msg';
+      if (isBot) {
+        bubble.innerHTML = formatMarkdownText(text);
+      } else {
+        bubble.textContent = text;
+      }
+      box.appendChild(bubble);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function showLoadingIndicator() {
+      const loader = document.createElement('div');
+      loader.className = 'msg-bubble bot-msg loading-bubble';
+      loader.id = 'chippy-loader';
+      const textNode = document.createElement('span');
+      textNode.id = 'loader-text';
+      textNode.textContent = 'Thinking...';
+      loader.appendChild(textNode);
+      box.appendChild(loader);
+      box.scrollTop = box.scrollHeight;
+
+      const phrases = ['Thinking...', 'Cooking...', 'Modernizing...'];
+      let index = 0;
+      const intervalId = setInterval(() => {
+        const element = document.getElementById('loader-text');
+        if (element) {
+          index = (index + 1) % phrases.length;
+          element.textContent = phrases[index];
+        } else {
+          clearInterval(intervalId);
+        }
+      }, 1200);
+      return intervalId;
+    }
+
+    function removeLoadingIndicator(intervalId) {
+      clearInterval(intervalId);
+      const loader = document.getElementById('chippy-loader');
+      if (loader) loader.remove();
+    }
+
+    window.formatMarkdownText = formatMarkdownText;
+    window.showLoadingIndicator = showLoadingIndicator;
+    window.removeLoadingIndicator = removeLoadingIndicator;
+    window.appendMessage = appendMessage;
+  </script>
+
+  <!-- Python logic embedded inside -->
+  <script type="py">
+    import pyodide_http
+    import requests
+    from pyscript import document, when
+    from js import window, formatMarkdownText, showLoadingIndicator, removeLoadingIndicator, appendMessage
+
+    API_KEY = "THE_KEY_WILL_BE_HERE"
+    pyodide_http.patch_all()
+    BASE_URL = "https://googleapis.com"
+    SYSTEM_INSTRUCTION = "Your name is Minima. You are a precise coding assistant. CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
+
+    def process_chat_cycle():
+        msg_input = document.querySelector("#msg")
+        user_text = msg_input.element.value.strip()
+        if not user_text:
+            return
+            
+        appendMessage(user_text, False)
+        msg_input.element.value = ""
+        
+        animation_id = showLoadingIndicator()
+        
+        payload = {
+            "contents": [{"parts": [{"text": user_text}]}],
+            "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]}
+        }
+        headers = {
+            "x-goog-api-key": API_KEY,
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            response = requests.post(BASE_URL, json=payload, headers=headers, timeout=30)
+            data = response.json()
+            bot_response = data["candidates"]["content"]["parts"]["text"]
+        except Exception as e:
+            bot_response = f"Engine Connection Offline: {str(e)}"
+            
+        removeLoadingIndicator(animation_id)
+        appendMessage(bot_response, True)
+
+    @when("click", "#sendBtn")
+    def click_handler(event):
+        process_chat_cycle()
+
+    @when("keydown", "#msg")
+    def key_handler(event):
+        if event.key == "Enter":
+            process_chat_cycle()
+  </script>
 </body>
 </html>
