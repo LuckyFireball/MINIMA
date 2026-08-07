@@ -20,9 +20,8 @@ jobs:
       - name: Inject Secret Token Safely
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
-        # Changed to a safe echo statement to avoid breaking YAML quote rules
         run: |
-          python3 -c "import os; f=open('main.py','r'); c=f.read(); f.close(); c=c.replace('THE_KEY_WILL_BE_HERE', os.environ['THE_KEY']); f=open('main.py','w'); f.write(c); f.close()"
+          python3 -c "import os; f=open('index.html','r'); c=f.read(); f.close(); c=c.replace('THE_KEY_WILL_BE_HERE', os.environ['THE_KEY']); f=open('index.html','w'); f.write(c); f.close()"
 
       - name: Setup GitHub Pages Website Environment
         uses: actions/configure-pages@v5
