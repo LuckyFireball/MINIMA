@@ -6,8 +6,10 @@
   <meta name="google-site-verification" content="9HvV_MPXWlPB06KMwelS_sWi2caNCp8y-pN2Q0XkAzA" />
   <title>MINIMA by NOVA AI</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Fixed: Switched to the Classic Browser Bundle to stop the MIME type crash -->
   <link rel="stylesheet" href="https://pyscript.net">
-  <script type="module" src="https://pyscript.net"></script>
+  <script type="text/javascript" src="https://pyscript.net"></script>
 </head>
 
 <body>
@@ -73,9 +75,9 @@
 
       while ((match = regex.exec(text)) !== null) {
         matches.push({
-          full: match[0],
-          lang: match[1],
-          code: match[2],
+          full: match,
+          lang: match,
+          code: match,
           index: match.index,
         });
       }
