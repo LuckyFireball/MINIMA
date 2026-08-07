@@ -1,4 +1,4 @@
-name: Publish Cross-Platform Releases
+name: Publish Mac Application
 
 on: [push]
 
@@ -6,20 +6,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-        include:
-          - os: windows-latest
-            artifact_name: Minima-Engine-Windows.exe
-          - os: macos-latest
-            artifact_name: Minima-Engine-Mac
-          - os: ubuntu-latest
-            artifact_name: Minima-Engine-Linux
-
+  build-mac:
+    runs-on: macos-latest
     steps:
       - name: Sync Repository Code
         uses: actions/checkout@v4
@@ -33,33 +21,20 @@ jobs:
         run: |
           pip install pyinstaller google-genai
 
-      # Correctly nested if statement inside the Mac builder block
-      - name: Compile For Mac
-        if: matrix.os == 'macos-latest'
+      - name: Compile For Mac Architecture
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          pyinstaller --onefile --target-arch=x86_64 --name="${{ matrix.artifact_name }}" main.py
-
-      # Correctly nested if statement inside the Windows/Linux builder block
-      - name: Compile For Windows and Linux
-        if: matrix.os != 'macos-latest'
-        env:
-          THE_KEY: ${{ secrets.THE_KEY }}
-        run: |
-          pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
+          # Explicitly targets your 2019 Intel 64-bit MacBook Pro processor setup
+          pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
 
       - name: Create Version Tag
         id: tag
-        shell: bash
         run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - name: Publish to Public Releases Page
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.version }}
-          name: Minima Multi-OS Release ${{ steps.tag.outputs.version }}
-          files: |
-            dist/Minima-Engine-Windows.exe
-            dist/Minima-Engine-Mac
-            dist/Minima-Engine-Linux
+          name: Minima Mac Release ${{ steps.tag.outputs.version }}
+          files: dist/Minima-Engine-Mac
