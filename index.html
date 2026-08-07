@@ -49,8 +49,10 @@
 
       <div class="input-container">
         <div class="input-wrapper">
-          <input type="text" id="msg" placeholder="Message MINIMA...">
-          <button id="sendBtn">
+          <!-- Added py-keydown hook directly to the element -->
+          <input type="text" id="msg" placeholder="Message MINIMA..." py-keydown="bot.check_enter">
+          <!-- Added py-click hook directly to the button -->
+          <button id="sendBtn" py-click="bot.handle_send">
             <svg viewBox="0 0 24 24" width="18" height="18">
               <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
             </svg>
@@ -61,7 +63,6 @@
   </div>
 
   <script src="./script.js"></script>
-  <!-- Links your script structure directly with your config schema -->
-  <script type="py" src="./main.py" config="./pyscript.json"></script>
+  <script type="py" src="./main.py"></script>
 </body>
 </html>
