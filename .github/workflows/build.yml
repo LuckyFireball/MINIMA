@@ -33,17 +33,17 @@ jobs:
         run: |
           pip install pyinstaller google-genai
 
-      # Step 1: Strictly compiles for your 2019 Intel 64-bit MacBook Pro
-      if: matrix.os == 'macos-latest'
+      # Correctly nested if statement inside the Mac builder block
       - name: Compile For Mac
+        if: matrix.os == 'macos-latest'
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
           pyinstaller --onefile --target-arch=x86_64 --name="${{ matrix.artifact_name }}" main.py
 
-      # Step 2: Compiles for Windows and Linux runners safely without syntax crashes
-      if: matrix.os != 'macos-latest'
+      # Correctly nested if statement inside the Windows/Linux builder block
       - name: Compile For Windows and Linux
+        if: matrix.os != 'macos-latest'
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
