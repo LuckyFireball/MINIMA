@@ -1,10 +1,6 @@
-+const box = document.getElementById('box');
+const box = document.getElementById('box');
 const msgInput = document.getElementById('msg');
 const sendBtn = document.getElementById('sendBtn');
-
-// Lock input until Python engine finishes initialization
-msgInput.disabled = true;
-msgInput.placeholder = "Minima Engine loading... Please wait...";
 
 function formatMarkdownText(text) {
   const regex = /```(\w*)\n([\s\S]*?)\n```/g;
@@ -137,14 +133,7 @@ function removeLoadingIndicator(intervalId) {
   }
 }
 
-// Global functions exposed to Python
 window.formatMarkdownText = formatMarkdownText;
 window.showLoadingIndicator = showLoadingIndicator;
 window.removeLoadingIndicator = removeLoadingIndicator;
 window.appendMessage = appendMessage;
-
-// Signal function Python will call when it is fully ready
-window.pyEngineReady = function() {
-  msgInput.disabled = false;
-  msgInput.placeholder = "Message MINIMA...";
-};
