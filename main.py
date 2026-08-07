@@ -1,9 +1,8 @@
 import pyodide_http
 import requests
 from pyscript import document
-from js import window, formatMarkdownText, showLoadingIndicator, removeLoadingIndicator, appendMessage
+from js import formatMarkdownText, showLoadingIndicator, removeLoadingIndicator, appendMessage
 
-# Injected automatically by your GitHub build
 API_KEY = "THE_KEY_WILL_BE_HERE"
 
 pyodide_http.patch_all()
@@ -18,9 +17,8 @@ class ChatbotApi:
             "proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
         )
         self.msg_input = document.querySelector("#msg")
-        self.send_btn = document.querySelector("#sendBtn")
 
-    def handle_send(self, event):
+    def handle_send(self, event=None):
         user_text = self.msg_input.value.strip()
         if not user_text:
             return
@@ -52,16 +50,9 @@ class ChatbotApi:
         removeLoadingIndicator(animation_id)
         appendMessage(bot_response, True)
 
+    def check_enter(self, event):
+        if event.key == "Enter":
+            self.handle_send()
+
+# Instantiate the global object so your HTML py-hooks can touch it instantly
 bot = ChatbotApi()
-
-# Connect interface events to Python methods
-bot.send_btn.addEventListener("click", bot.handle_send)
-
-def check_enter(e):
-    if e.key == "Enter":
-        bot.handle_send(e)
-        
-bot.msg_input.addEventListener("keypress", check_enter)
-
-# Tell the JavaScript UI that python is fully loaded and listening
-window.pyEngineReady()
