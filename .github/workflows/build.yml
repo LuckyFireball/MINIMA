@@ -1,4 +1,4 @@
-name: Publish Cross-Platform App Installer
+name: Publish Cross-Platform Releases
 
 on: [push]
 
@@ -6,95 +6,65 @@ permissions:
   contents: write
 
 jobs:
-  # Job 1: Build the Windows App
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Sync Repository Code
-        uses: actions/checkout@v4
-
-      - name: Initialize Python Environment
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install Modules
-        run: pip install pyinstaller google-genai
-
-      - name: Compile For Windows
-        env:
-          THE_KEY: ${{ secrets.THE_KEY }}
-        run: pyinstaller --onefile --windowed --name="Minima-Engine-Windows" main.py
-
-      - name: Save Windows File
-        uses: actions/upload-artifact@v4
+      - run: pip install pyinstaller
+      - run: pyinstaller --onefile --name="Minima-Engine-Windows" main.py
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-bin
           path: dist/Minima-Engine-Windows.exe
 
-  # Job 2: Build a real, clickable macOS Application Bundle (.app)
   build-mac:
     runs-on: macos-latest
     steps:
-      - name: Sync Repository Code
-        uses: actions/checkout@v4
-
-      - name: Initialize Python Environment
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install Modules
-        run: pip install pyinstaller google-genai
-
-      - name: Compile Mac Application Bundle
-        env:
-          THE_KEY: ${{ secrets.THE_KEY }}
+      - run: pip install pyinstaller
+      - name: Compile and Zip Mac App
         run: |
-          # --windowed tells PyInstaller to create a real, clickable Minima.app folder layout
-          pyinstaller --onefile --windowed --target-arch=x86_64 --name="Minima" main.py
-          
-          # Compress the app into a standard ZIP folder so Mac users can double-click to unpack it
+          pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
           cd dist
-          zip -r Minima-Mac-Installer.zip Minima.app
-
-      - name: Save Mac File
-        uses: actions/upload-artifact@v4
+          zip -r Minima-Mac-Installer.zip Minima-Engine-Mac
+      - uses: actions/upload-artifact@v4
         with:
           name: mac-bin
           path: dist/Minima-Mac-Installer.zip
 
-  # Job 3: Compiles and publishes both zip assets seamlessly in one single step
-  publish-all-releases:
-    needs: [build-windows, build-mac]
+  build-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync Code
-        uses: actions/checkout@v4
-
-      - name: Download Windows App
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          name: windows-bin
+          python-version: '3.11'
+      - run: pip install pyinstaller
+      - run: pyinstaller --onefile --name="Minima-Engine-Linux" main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-bin
+          path: dist/Minima-Engine-Linux
+
+  publish-all-releases:
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
           path: dist/
           merge-multiple: true
-
-      - name: Download Mac App
-        uses: actions/download-artifact@v4
-        with:
-          name: mac-bin
-          path: dist/
-          merge-multiple: true
-
-      - name: Create Version Tag
-        id: tag
-        run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
-
-      - name: Publish Clean Packages to Releases Page
+      - name: Publish to Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.version }}
-          name: Minima Desktop App ${{ steps.tag.outputs.version }}
           files: |
             dist/Minima-Engine-Windows.exe
             dist/Minima-Mac-Installer.zip
+            dist/Minima-Engine-Linux
