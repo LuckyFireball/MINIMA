@@ -11,7 +11,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Spins up Windows, macOS, and Linux runners simultaneously
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
@@ -39,7 +38,12 @@ jobs:
           THE_KEY: ${{ secrets.THE_KEY }}
         shell: bash
         run: |
-          pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            # Forces PyInstaller to build a strict 64-bit Intel file for your 2019 MacBook Pro
+            pyinstaller --onefile --target-arch=x86_64 --name="${{ matrix.artifact_name }}" main.py
+          else
+            pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
+          fi
 
       - name: Create Version Tag
         id: tag
