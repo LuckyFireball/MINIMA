@@ -59,7 +59,6 @@
   </div>
 
   <script>
-    // Hidden key variable that your GitHub build workflow replaces automatically
     const API_KEY = "THE_KEY_WILL_BE_HERE";
     const BASE_URL = "https://googleapis.com";
     const SYSTEM_INSTRUCTION = "Your name is Minima. You are a precise coding assistant. CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside proper markdown code blocks with the correct language identifier (e.g., ```python ... ```).";
@@ -135,7 +134,6 @@
       });
     }
 
-    // Typo removed completely from this section
     function appendMessage(text, isBot) {
       const bubble = document.createElement('div');
       bubble.className = isBot ? 'msg-bubble bot-msg' : 'msg-bubble user-msg';
@@ -194,22 +192,26 @@
       };
 
       try {
-        const response = await fetch(`${BASE_URL}?key=${API_KEY}`, {
+        // Fixed: Swapped key query string layout to secure custom headers specification
+        const response = await fetch(BASE_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-goog-api-key': API_KEY 
+          },
           body: JSON.stringify(payload)
         });
         
         const data = await response.json();
         
-        // Fixed: Added safer object data extraction paths
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
           const botResponse = data.candidates[0].content.parts[0].text;
           removeLoadingIndicator(animationId);
-          appendMessage(botResponse, True);
+          // Fixed: Lowercased JavaScript syntax boolean to prevent runtime engine crashes
+          appendMessage(botResponse, true);
         } else {
           removeLoadingIndicator(animationId);
-          appendMessage("Engine Error: Received unreadable data from Gemini.", true);
+          appendMessage("Engine Error: Received unreadable data structures from Gemini.", true);
           console.log(data);
         }
       } catch (error) {
