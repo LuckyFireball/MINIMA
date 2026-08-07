@@ -7,9 +7,9 @@
   <title>MINIMA by NOVA AI</title>
   <link rel="stylesheet" href="style.css">
   
-  <!-- Fixed: Switched to the Classic Browser Bundle to stop the MIME type crash -->
-  <link rel="stylesheet" href="https://pyscript.net">
-  <script type="text/javascript" src="https://pyscript.net"></script>
+  <!-- Fixed: Updated to current framework core paths to completely stop MIME and 404 blockages -->
+  <link rel="stylesheet" href="https://pyscript.net/releases/2026.7.3/core.css" />
+  <script type="module" src="https://pyscript.net/releases/2026.7.3/core.js"></script>
 </head>
 
 <body>
@@ -75,9 +75,9 @@
 
       while ((match = regex.exec(text)) !== null) {
         matches.push({
-          full: match,
-          lang: match,
-          code: match,
+          full: match[0],
+          lang: match[1],
+          code: match[2],
           index: match.index,
         });
       }
