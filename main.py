@@ -1,78 +1,53 @@
-import pyodide_http
-import requests
-from pyscript import document, when
+import os
+import sys
+from google import genai
+from google.genai import types
 
-# The GitHub workflow safely substitutes your AQ. key right here
-API_KEY = "THE_KEY_WILL_BE_HERE"
+# This variable automatically receives your secret during the GitHub build stage
+API_KEY = os.getenv("THE_KEY")
 
-pyodide_http.patch_all()
+class ChatbotApi:
+    def __init__(self):
+        if not API_KEY:
+            raise ValueError("Error: THE_KEY secret is completely missing from the build environment!")
+            
+        self.client = genai.Client(api_key=API_KEY)
+        self.system_instruction = (
+            "Your name is Minima. You are a precise coding assistant. "
+            "CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside "
+            "proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
+        )
+        self.config = types.GenerateContentConfig(system_instruction=self.system_instruction)
+        self.chat_session = self.client.chats.create(model="gemini-3.6-flash", config=self.config)
 
-BASE_URL = "https://googleapis.com"
-SYSTEM_INSTRUCTION = (
-    "Your name is Minima. You are a precise coding assistant. "
-    "CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside "
-    "proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
-)
+    def chat(self, message):
+        try:
+            response = self.chat_session.send_message(message)
+            return response.text
+        except Exception as e:
+            return f"Google Studio Core Processing Error: {str(e)}"
 
-def append_message_to_ui(text, is_bot):
-    chat_box = document.querySelector("#box")
-    bubble = document.createElement("div")
-    bubble.className = "msg-bubble bot-msg" if is_bot else "msg-bubble user-msg"
-    
-    # Render basic linebreaks if markdown blocks aren't present
-    bubble.innerHTML = text.replace("\n", "<br>").replace("  ", "&nbsp;&nbsp;")
-    chat_box.appendChild(bubble)
-    chat_box.element.scrollTop = chat_box.element.scrollHeight
-
-def process_chat_cycle():
-    msg_input = document.querySelector("#msg")
-    user_text = msg_input.element.value.strip()
-    
-    if not user_text:
-        return
-        
-    # Show user message and wipe text box
-    append_message_to_ui(user_text, is_bot=False)
-    msg_input.element.value = ""
-    
-    # Render loading bubble
-    chat_box = document.querySelector("#box")
-    loader = document.createElement("div")
-    loader.className = "msg-bubble bot-msg"
-    loader.id = "minima-loader"
-    loader.textContent = "Thinking..."
-    chat_box.appendChild(loader)
-    chat_box.element.scrollTop = chat_box.element.scrollHeight
-    
-    payload = {
-        "contents": [{"parts": [{"text": user_text}]}],
-        "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]}
-    }
-    headers = {
-        "x-goog-api-key": API_KEY,
-        "Content-Type": "application/json"
-    }
-    
+if __name__ == "__main__":
     try:
-        response = requests.post(BASE_URL, json=payload, headers=headers, timeout=30)
-        data = response.json()
-        bot_response = data["candidates"][0]["content"]["parts"][0]["text"]
+        bot = ChatbotApi()
+        print("=" * 50)
+        print(" MINIMA AI ENGINE INITIALIZED SUCCESSFULLY")
+        print(" Type 'exit' and press Enter to close the application.")
+        print("=" * 50 + "\n")
+        
+        while True:
+            user_input = input("You: ").strip()
+            if not user_input:
+                continue
+            if user_input.lower() == 'exit':
+                print("\nShutting down engine. Goodbye!")
+                break
+                
+            print("\nMinima is thinking...")
+            result = bot.chat(user_input)
+            print(f"\nMinima:\n{result}\n")
+            print("-" * 50)
+            
     except Exception as e:
-        bot_response = f"Engine Connection Offline: {str(e)}"
-        
-    # Remove loader bubble and display final response text
-    loader_el = document.querySelector("#minima-loader")
-    if loader_el:
-        loader_el.element.remove()
-        
-    append_message_to_ui(bot_response, is_bot=True)
-
-# Native PyScript events: Listen directly to elements using pure Python tags!
-@when("click", "#sendBtn")
-def click_handler(event):
-    process_chat_cycle()
-
-@when("keydown", "#msg")
-def key_handler(event):
-    if event.key == "Enter":
-        process_chat_cycle()
+        print(f"\n[Initialization Crash] {e}")
+        input("\nPress Enter to close...")
