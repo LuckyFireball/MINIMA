@@ -21,7 +21,15 @@ jobs:
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
         run: |
-          python3 -c "import os; f=open('index.html','r'); c=f.read(); f.close(); c=c.replace('THE_KEY_WILL_BE_HERE', os.environ['THE_KEY']); f=open('index.html','w'); f.write(c); f.close()"
+          # Uses standard Python to find the placeholder text inside index.html and overwrite it with your real key
+          python3 -c "
+          import os
+          with open('index.html', 'r') as f:
+              code = f.read()
+          code = code.replace('THE_KEY_WILL_BE_HERE', os.environ.get('THE_KEY', ''))
+          with open('index.html', 'w') as f:
+              f.write(code)
+          "
 
       - name: Setup GitHub Pages Website Environment
         uses: actions/configure-pages@v5
