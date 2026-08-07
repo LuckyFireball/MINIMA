@@ -7,9 +7,9 @@
   <title>MINIMA by NOVA AI</title>
   <link rel="stylesheet" href="style.css">
   
-  <!-- Fixed: Updated to current framework core paths to completely stop MIME and 404 blockages -->
-  <link rel="stylesheet" href="https://pyscript.net/releases/2026.7.3/core.css" />
-  <script type="module" src="https://pyscript.net/releases/2026.7.3/core.js"></script>
+  <!-- Core PyScript Framework Files -->
+  <link rel="stylesheet" href="https://pyscript.net" />
+  <script type="module" src="https://pyscript.net"></script>
 </head>
 
 <body>
@@ -184,8 +184,8 @@
     window.appendMessage = appendMessage;
   </script>
 
-  <!-- Python logic embedded inside -->
-  <script type="py">
+  <!-- Python logic embedded inside + Added the worker attribute to resolve 404 crashes -->
+  <script type="py" worker>
     import pyodide_http
     import requests
     from pyscript import document, when
