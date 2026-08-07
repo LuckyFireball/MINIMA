@@ -84,7 +84,7 @@ jobs:
           name: linux-bin
           path: dist/Minima-Engine-Linux
 
-  # Job 4: One single machine waits for everyone to finish and publishes them cleanly
+  # Job 4: Gathers all files cleanly into one flat folder and publishes them
   publish-all-releases:
     needs: [build-windows, build-mac, build-linux]
     runs-on: ubuntu-latest
@@ -96,19 +96,22 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-bin
-          path: final-dist/
+          path: dist/
+          merge-multiple: true # Combines files into the same root folder
 
       - name: Download Mac App
         uses: actions/download-artifact@v4
         with:
           name: mac-bin
-          path: final-dist/
+          path: dist/
+          merge-multiple: true
 
       - name: Download Linux App
         uses: actions/download-artifact@v4
         with:
           name: linux-bin
-          path: final-dist/
+          path: dist/
+          merge-multiple: true
 
       - name: Create Version Tag
         id: tag
@@ -120,6 +123,6 @@ jobs:
           tag_name: ${{ steps.tag.outputs.version }}
           name: Minima Multi-OS Release ${{ steps.tag.outputs.version }}
           files: |
-            final-dist/Minima-Engine-Windows.exe
-            final-dist/Minima-Engine-Mac
-            final-dist/Minima-Engine-Linux
+            dist/Minima-Engine-Windows.exe
+            dist/Minima-Engine-Mac
+            dist/Minima-Engine-Linux
