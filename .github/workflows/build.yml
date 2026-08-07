@@ -1,4 +1,4 @@
-name: Publish Mac Application
+name: Publish Cross-Platform Releases
 
 on: [push]
 
@@ -6,6 +6,33 @@ permissions:
   contents: write
 
 jobs:
+  # Job 1: Independent Windows Builder Machine
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Sync Repository Code
+        uses: actions/checkout@v4
+
+      - name: Initialize Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller and Gemini
+        run: pip install pyinstaller google-genai
+
+      - name: Compile For Windows
+        env:
+          THE_KEY: ${{ secrets.THE_KEY }}
+        run: pyinstaller --onefile --name="Minima-Engine-Windows" main.py
+
+      - name: Save Windows Build File Temporary
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-bin
+          path: dist/Minima-Engine-Windows.exe
+
+  # Job 2: Independent Mac Builder Machine (For your 2019 MacBook Pro)
   build-mac:
     runs-on: macos-latest
     steps:
@@ -18,23 +45,81 @@ jobs:
           python-version: '3.11'
 
       - name: Install PyInstaller and Gemini
-        run: |
-          pip install pyinstaller google-genai
+        run: pip install pyinstaller google-genai
 
       - name: Compile For Mac Architecture
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
-        run: |
-          # Explicitly targets your 2019 Intel 64-bit MacBook Pro processor setup
-          pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
+        run: pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
+
+      - name: Save Mac Build File Temporary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-bin
+          path: dist/Minima-Engine-Mac
+
+  # Job 3: Independent Linux Builder Machine
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Repository Code
+        uses: actions/checkout@v4
+
+      - name: Initialize Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller and Gemini
+        run: pip install pyinstaller google-genai
+
+      - name: Compile For Linux
+        env:
+          THE_KEY: ${{ secrets.THE_KEY }}
+        run: pyinstaller --onefile --name="Minima-Engine-Linux" main.py
+
+      - name: Save Linux Build File Temporary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-bin
+          path: dist/Minima-Engine-Linux
+
+  # Job 4: Pulls all completed files together and publishes them as an official release
+  publish-release:
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Code Layout
+        uses: actions/checkout@v4
+
+      - name: Gather Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-bin
+          path: dist/
+
+      - name: Gather Mac Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-bin
+          path: dist/
+
+      - name: Gather Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-bin
+          path: dist/
 
       - name: Create Version Tag
         id: tag
         run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      - name: Publish to Public Releases Page
+      - name: Publish All to Public Releases Page
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.version }}
-          name: Minima Mac Release ${{ steps.tag.outputs.version }}
-          files: dist/Minima-Engine-Mac
+          name: Minima Multi-OS Release ${{ steps.tag.outputs.version }}
+          files: |
+            dist/Minima-Engine-Windows.exe
+            dist/Minima-Engine-Mac
+            dist/Minima-Engine-Linux
