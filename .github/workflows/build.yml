@@ -1,43 +1,57 @@
-name: Deploy Live Website
+name: Publish Cross-Platform Releases
 
-on:
-  push:
-    branches:
-      - main
+on: [push]
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
-  deploy-site:
-    runs-on: ubuntu-latest
+  release:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # Spins up Windows, macOS, and Linux runners simultaneously
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            artifact_name: Minima-Engine-Windows.exe
+          - os: macos-latest
+            artifact_name: Minima-Engine-Mac
+          - os: ubuntu-latest
+            artifact_name: Minima-Engine-Linux
+
     steps:
       - name: Sync Repository Code
         uses: actions/checkout@v4
 
-      - name: Inject Secret Token Safely
+      - name: Initialize Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller and Gemini
+        run: |
+          pip install pyinstaller google-genai
+
+      - name: Compile Executable Bundle
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
+        shell: bash
         run: |
-          # Uses standard Python to find the placeholder text inside index.html and overwrite it with your real key
-          python3 -c "
-          import os
-          with open('index.html', 'r') as f:
-              code = f.read()
-          code = code.replace('THE_KEY_WILL_BE_HERE', os.environ.get('THE_KEY', ''))
-          with open('index.html', 'w') as f:
-              f.write(code)
-          "
+          pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
 
-      - name: Setup GitHub Pages Website Environment
-        uses: actions/configure-pages@v5
+      - name: Create Version Tag
+        id: tag
+        shell: bash
+        run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      - name: Upload Page Files
-        uses: actions/upload-pages-artifact@v3
+      - name: Publish to Public Releases Page
+        uses: softprops/action-gh-release@v2
         with:
-          path: '.'
-
-      - name: Deploy Live Link
-        uses: actions/deploy-pages@v4
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: Minima Multi-OS Release ${{ steps.tag.outputs.version }}
+          files: |
+            dist/Minima-Engine-Windows.exe
+            dist/Minima-Engine-Mac
+            dist/Minima-Engine-Linux
