@@ -33,17 +33,21 @@ jobs:
         run: |
           pip install pyinstaller google-genai
 
-      - name: Compile Executable Bundle
+      # Step 1: Strictly compiles for your 2019 Intel 64-bit MacBook Pro
+      if: matrix.os == 'macos-latest'
+      - name: Compile For Mac
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
-        shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            # Forces PyInstaller to build a strict 64-bit Intel file for your 2019 MacBook Pro
-            pyinstaller --onefile --target-arch=x86_64 --name="${{ matrix.artifact_name }}" main.py
-          else
-            pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
-          fi
+          pyinstaller --onefile --target-arch=x86_64 --name="${{ matrix.artifact_name }}" main.py
+
+      # Step 2: Compiles for Windows and Linux runners safely without syntax crashes
+      if: matrix.os != 'macos-latest'
+      - name: Compile For Windows and Linux
+        env:
+          THE_KEY: ${{ secrets.THE_KEY }}
+        run: |
+          pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
 
       - name: Create Version Tag
         id: tag
