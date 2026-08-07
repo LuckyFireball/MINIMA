@@ -1,4 +1,4 @@
-name: Publish Cross-Platform Releases
+name: Publish Cross-Platform App Installer
 
 on: [push]
 
@@ -24,7 +24,7 @@ jobs:
       - name: Compile For Windows
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
-        run: pyinstaller --onefile --name="Minima-Engine-Windows" main.py
+        run: pyinstaller --onefile --windowed --name="Minima-Engine-Windows" main.py
 
       - name: Save Windows File
         uses: actions/upload-artifact@v4
@@ -32,7 +32,7 @@ jobs:
           name: windows-bin
           path: dist/Minima-Engine-Windows.exe
 
-  # Job 2: Build the Mac App (For your 2019 MacBook Pro)
+  # Job 2: Build a real, clickable macOS Application Bundle (.app)
   build-mac:
     runs-on: macos-latest
     steps:
@@ -47,46 +47,26 @@ jobs:
       - name: Install Modules
         run: pip install pyinstaller google-genai
 
-      - name: Compile For Mac Architecture
+      - name: Compile Mac Application Bundle
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
-        run: pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
+        run: |
+          # --windowed tells PyInstaller to create a real, clickable Minima.app folder layout
+          pyinstaller --onefile --windowed --target-arch=x86_64 --name="Minima" main.py
+          
+          # Compress the app into a standard ZIP folder so Mac users can double-click to unpack it
+          cd dist
+          zip -r Minima-Mac-Installer.zip Minima.app
 
       - name: Save Mac File
         uses: actions/upload-artifact@v4
         with:
           name: mac-bin
-          path: dist/Minima-Engine-Mac
+          path: dist/Minima-Mac-Installer.zip
 
-  # Job 3: Build the Linux App
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Sync Repository Code
-        uses: actions/checkout@v4
-
-      - name: Initialize Python Environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Modules
-        run: pip install pyinstaller google-genai
-
-      - name: Compile For Linux
-        env:
-          THE_KEY: ${{ secrets.THE_KEY }}
-        run: pyinstaller --onefile --name="Minima-Engine-Linux" main.py
-
-      - name: Save Linux File
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-bin
-          path: dist/Minima-Engine-Linux
-
-  # Job 4: Gathers all files cleanly into one flat folder and publishes them
+  # Job 3: Compiles and publishes both zip assets seamlessly in one single step
   publish-all-releases:
-    needs: [build-windows, build-mac, build-linux]
+    needs: [build-windows, build-mac]
     runs-on: ubuntu-latest
     steps:
       - name: Sync Code
@@ -97,7 +77,7 @@ jobs:
         with:
           name: windows-bin
           path: dist/
-          merge-multiple: true # Combines files into the same root folder
+          merge-multiple: true
 
       - name: Download Mac App
         uses: actions/download-artifact@v4
@@ -106,23 +86,15 @@ jobs:
           path: dist/
           merge-multiple: true
 
-      - name: Download Linux App
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-bin
-          path: dist/
-          merge-multiple: true
-
       - name: Create Version Tag
         id: tag
         run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      - name: Publish All Files to Releases Page
+      - name: Publish Clean Packages to Releases Page
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.version }}
-          name: Minima Multi-OS Release ${{ steps.tag.outputs.version }}
+          name: Minima Desktop App ${{ steps.tag.outputs.version }}
           files: |
             dist/Minima-Engine-Windows.exe
-            dist/Minima-Engine-Mac
-            dist/Minima-Engine-Linux
+            dist/Minima-Mac-Installer.zip
