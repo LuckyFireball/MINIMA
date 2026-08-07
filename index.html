@@ -6,10 +6,6 @@
   <meta name="google-site-verification" content="9HvV_MPXWlPB06KMwelS_sWi2caNCp8y-pN2Q0XkAzA" />
   <title>MINIMA by NOVA AI</title>
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Core PyScript Framework Files -->
-  <link rel="stylesheet" href="https://pyscript.net" />
-  <script type="module" src="https://pyscript.net"></script>
 </head>
 
 <body>
@@ -62,8 +58,12 @@
     </div>
   </div>
 
-  <!-- JavaScript logic embedded inside -->
   <script>
+    // Hidden key variable that your GitHub build workflow replaces automatically
+    const API_KEY = "THE_KEY_WILL_BE_HERE";
+    const BASE_URL = "https://googleapis.com";
+    const SYSTEM_INSTRUCTION = "Your name is Minima. You are a precise coding assistant. CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside proper markdown code blocks with the correct language identifier (e.g., ```python ... ```).";
+
     const box = document.getElementById('box');
     const msgInput = document.getElementById('msg');
     const sendBtn = document.getElementById('sendBtn');
@@ -135,6 +135,7 @@
       });
     }
 
+     Zion
     function appendMessage(text, isBot) {
       const bubble = document.createElement('div');
       bubble.className = isBot ? 'msg-bubble bot-msg' : 'msg-bubble user-msg';
@@ -178,62 +179,46 @@
       if (loader) loader.remove();
     }
 
-    window.formatMarkdownText = formatMarkdownText;
-    window.showLoadingIndicator = showLoadingIndicator;
-    window.removeLoadingIndicator = removeLoadingIndicator;
-    window.appendMessage = appendMessage;
-  </script>
+    async function processChatCycle() {
+      const userText = msgInput.value.trim();
+      if (!userText) return;
 
-  <!-- Python logic embedded inside + Added the worker attribute to resolve 404 crashes -->
-  <script type="py" worker>
-    import pyodide_http
-    import requests
-    from pyscript import document, when
-    from js import window, formatMarkdownText, showLoadingIndicator, removeLoadingIndicator, appendMessage
+      appendMessage(userText, false);
+      msgInput.value = '';
 
-    API_KEY = "THE_KEY_WILL_BE_HERE"
-    pyodide_http.patch_all()
-    BASE_URL = "https://googleapis.com"
-    SYSTEM_INSTRUCTION = "Your name is Minima. You are a precise coding assistant. CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside proper markdown code blocks with the correct language identifier (e.g., ```python ... ```)."
+      const animationId = showLoadingIndicator();
 
-    def process_chat_cycle():
-        msg_input = document.querySelector("#msg")
-        user_text = msg_input.element.value.strip()
-        if not user_text:
-            return
-            
-        appendMessage(user_text, False)
-        msg_input.element.value = ""
+      const payload = {
+        contents: [{ parts: [{ text: userText }] }],
+        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] }
+      };
+
+      try {
+        const response = await fetch(`${BASE_URL}?key=${API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
         
-        animation_id = showLoadingIndicator()
+        const data = await response.json();
+        const botResponse = data.candidates[0].content.parts[0].text;
         
-        payload = {
-            "contents": [{"parts": [{"text": user_text}]}],
-            "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]}
-        }
-        headers = {
-            "x-goog-api-key": API_KEY,
-            "Content-Type": "application/json"
-        }
-        
-        try:
-            response = requests.post(BASE_URL, json=payload, headers=headers, timeout=30)
-            data = response.json()
-            bot_response = data["candidates"]["content"]["parts"]["text"]
-        except Exception as e:
-            bot_response = f"Engine Connection Offline: {str(e)}"
-            
-        removeLoadingIndicator(animation_id)
-        appendMessage(bot_response, True)
+        removeLoadingIndicator(animationId);
+        appendMessage(botResponse, true);
+      } catch (error) {
+        removeLoadingIndicator(animationId);
+        appendMessage("Engine Connection Offline: Could not reach Gemini.", true);
+        console.error(error);
+      }
+    }
 
-    @when("click", "#sendBtn")
-    def click_handler(event):
-        process_chat_cycle()
-
-    @when("keydown", "#msg")
-    def key_handler(event):
-        if event.key == "Enter":
-            process_chat_cycle()
+    // Assign standard JavaScript click and keypress listeners natively
+    sendBtn.addEventListener('click', processChatCycle);
+    msgInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        processChatCycle();
+      }
+    });
   </script>
 </body>
 </html>
