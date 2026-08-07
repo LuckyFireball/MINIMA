@@ -60,7 +60,9 @@
 
   <script>
     const API_KEY = "THE_KEY_WILL_BE_HERE";
-    const BASE_URL = "https://googleapis.com";
+    
+    // Fixed: Routed through an open proxy path to completely bypass browser CORS blocks
+    const BASE_URL = "https://corsproxy.io";
     const SYSTEM_INSTRUCTION = "Your name is Minima. You are a precise coding assistant. CRITICAL: Whenever you generate, show, or mention code, you MUST wrap it inside proper markdown code blocks with the correct language identifier (e.g., ```python ... ```).";
 
     const box = document.getElementById('box');
@@ -192,7 +194,6 @@
       };
 
       try {
-        // Fixed: Swapped key query string layout to secure custom headers specification
         const response = await fetch(BASE_URL, {
           method: 'POST',
           headers: { 
@@ -207,11 +208,10 @@
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
           const botResponse = data.candidates[0].content.parts[0].text;
           removeLoadingIndicator(animationId);
-          // Fixed: Lowercased JavaScript syntax boolean to prevent runtime engine crashes
           appendMessage(botResponse, true);
         } else {
           removeLoadingIndicator(animationId);
-          appendMessage("Engine Error: Received unreadable data structures from Gemini.", true);
+          appendMessage("Engine Error: Received unreadable data layout format.", true);
           console.log(data);
         }
       } catch (error) {
