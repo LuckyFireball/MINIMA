@@ -6,20 +6,9 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build and Release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-        include:
-          - os: windows-latest
-            artifact_name: Minima-Engine-Windows.exe
-          - os: macos-latest
-            artifact_name: Minima-Engine-Mac
-          - os: ubuntu-latest
-            artifact_name: Minima-Engine-Linux
-
+  # Job 1: Build the Windows App
+  build-windows:
+    runs-on: windows-latest
     steps:
       - name: Sync Repository Code
         uses: actions/checkout@v4
@@ -29,39 +18,108 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PyInstaller and Gemini
+      - name: Install Modules
         run: pip install pyinstaller google-genai
 
-      # Compile for Mac (Your 2019 Intel 64-bit MacBook Pro)
-      - name: Compile For Mac
-        if: matrix.os == 'macos-latest'
-        env:
-          THE_KEY: ${{ secrets.THE_KEY }}
-        run: pyinstaller --onefile --target-arch=x86_64 --name="${{ matrix.artifact_name }}" main.py
-
-      # Compile for Windows
       - name: Compile For Windows
-        if: matrix.os == 'windows-latest'
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
-        run: pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
+        run: pyinstaller --onefile --name="Minima-Engine-Windows" main.py
 
-      # Compile for Linux
-      - name: Compile For Linux
-        if: matrix.os == 'ubuntu-latest'
+      - name: Save Windows File
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-bin
+          path: dist/Minima-Engine-Windows.exe
+
+  # Job 2: Build the Mac App (For your 2019 MacBook Pro)
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Sync Repository Code
+        uses: actions/checkout@v4
+
+      - name: Initialize Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Modules
+        run: pip install pyinstaller google-genai
+
+      - name: Compile For Mac Architecture
         env:
           THE_KEY: ${{ secrets.THE_KEY }}
-        run: pyinstaller --onefile --name="${{ matrix.artifact_name }}" main.py
+        run: pyinstaller --onefile --target-arch=x86_64 --name="Minima-Engine-Mac" main.py
+
+      - name: Save Mac File
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-bin
+          path: dist/Minima-Engine-Mac
+
+  # Job 3: Build the Linux App
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Repository Code
+        uses: actions/checkout@v4
+
+      - name: Initialize Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Modules
+        run: pip install pyinstaller google-genai
+
+      - name: Compile For Linux
+        env:
+          THE_KEY: ${{ secrets.THE_KEY }}
+        run: pyinstaller --onefile --name="Minima-Engine-Linux" main.py
+
+      - name: Save Linux File
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-bin
+          path: dist/Minima-Engine-Linux
+
+  # Job 4: One single machine waits for everyone to finish and publishes them cleanly
+  publish-all-releases:
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Code
+        uses: actions/checkout@v4
+
+      - name: Download Windows App
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-bin
+          path: final-dist/
+
+      - name: Download Mac App
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-bin
+          path: final-dist/
+
+      - name: Download Linux App
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-bin
+          path: final-dist/
 
       - name: Create Version Tag
         id: tag
-        shell: bash
         run: echo "version=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      # Each runner uploads its own file directly to the same release page
-      - name: Publish to Public Releases Page
+      - name: Publish All Files to Releases Page
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.version }}
           name: Minima Multi-OS Release ${{ steps.tag.outputs.version }}
-          files: dist/${{ matrix.artifact_name }}
+          files: |
+            final-dist/Minima-Engine-Windows.exe
+            final-dist/Minima-Engine-Mac
+            final-dist/Minima-Engine-Linux
